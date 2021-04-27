@@ -1,0 +1,150 @@
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style("darkgrid")
+%matplotlib inline
+
+import string
+import nltk
+from nltk.corpus import stopwords
+
+from wordcloud import WordCloud
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.model_selection import train_test_split 
+from sklearn import metrics
+
+messages = pd.read_csv('spam.csv',encoding = 'latin-1')
+messages.head()
+messages = messages.drop(labels = ["Unnamed: 2", "Unnamed: 3", "Unnamed: 4"], axis = 1)
+messages.columns = ["label", "message"]
+messages.head()
+messages.info()
+messages.describe()
+messages.groupby('label').describe().T
+messages['length'] = messages['message'].apply(len)
+messages.head()
+# Count the frequency of top 5 messages.
+messages['message'].value_counts().rename_axis(['message']).reset_index(name='counts').head()
+messages["label"].value_counts().plot(kind = 'pie',explode=[0, 0.1],figsize=(6, 6),autopct='%1.1f%%',shadow=True)
+plt.title("Spam vs Ham")
+plt.legend(["Ham", "Spam"])
+plt.show()
+plt.figure(figsize=(12,6))
+messages['length'].plot(bins=100, kind='hist') # with 100 length bins (100 length intervals) 
+plt.title("Frequency Distribution of Message Length")
+plt.xlabel("Length")
+plt.ylabel("Frequency")
+messages['length'].describe()
+messages[messages['length'] == 910]['message'].iloc[0]
+messages.hist(column='length', by='label', bins=50,figsize=(12,4))
+def text_preprocess(mess):
+    """
+    Takes in a string of text, then performs the following:
+    1. Remove all punctuation
+    2. Remove all stopwords
+    3. Returns a list of the cleaned text
+    """
+    # Check characters to see if they are in punctuation
+    nopunc = [char for char in mess if char not in string.punctuation]
+
+    # Join the characters again to form the string.
+    nopunc = ''.join(nopunc)
+    nopunc = nopunc.lower()
+    
+    # Now just remove any stopwords and non alphabets
+    nostop=[word for word in nopunc.split() if word.lower() not in stopwords.words('english') and word.isalpha()]
+    
+    return nostop
+spam_messages = messages[messages["label"] == "spam"]["message"]
+ham_messages = messages[messages["label"] == "ham"]["message"]
+print("No of spam messages : ",len(spam_messages))
+print("No of ham messages : ",len(ham_messages))
+# This may take a while....
+spam_words = text_preprocess(spam_messages)
+# lets print some spam words
+spam_words[:10]
+spam_wordcloud = WordCloud(width=600, height=400).generate(' '.join(spam_words))
+plt.figure( figsize=(10,8), facecolor='k')
+plt.imshow(spam_wordcloud)
+plt.axis("off")
+plt.tight_layout(pad=0)
+plt.show()
+print("Top 10 Spam words are :\n")
+print(pd.Series(spam_words).value_counts().head(10))
+# This may take a while...
+ham_words = text_preprocess(ham_messages)
+ham_words
+ham_wordcloud = WordCloud(width=600, height=400).generate(' '.join(ham_words))
+plt.figure( figsize=(10,8), facecolor='k')
+plt.imshow(ham_wordcloud)
+plt.axis("off")
+plt.tight_layout(pad=0)
+plt.show()
+messages.hist(column='length', by='label', bins=50,figsize=(12,4))
+
+
+
+def text_process(mess):
+    """
+    Takes in a string of text, then performs the following:
+    1. Remove all punctuation
+    2. Remove all stopwords
+    3. Returns a list of the cleaned text
+    """
+    # Check characters to see if they are in punctuation
+    nopunc = [char for char in mess if char not in string.punctuation]
+
+    # Join the characters again to form the string.
+    nopunc = ''.join(nopunc)
+    
+    # Now just remove any stopwords
+    return [word for word in nopunc.split() if word.lower() not in stopwords.words('english')]
+from sklearn.feature_extraction.text import CountVectorizer
+bow_transformer = CountVectorizer(analyzer=text_process).fit(messages['message'])
+
+# Print total number of vocab words
+print(len(bow_transformer.vocabulary_))
+bow_transformer = CountVectorizer(analyzer=text_process).fit(messages['message'])
+
+# Print total number of vocab words
+print(len(bow_transformer.vocabulary_))
+from sklearn.feature_extraction.text import TfidfTransformer
+tfidf_transformer = TfidfTransformer().fit(messages_bow)
+messages_tfidf = tfidf_transformer.transform(messages_bow)
+print(messages_tfidf.shape)
+from sklearn.naive_bayes import MultinomialNB
+spam_detect_model = MultinomialNB().fit(messages_tfidf, messages['label'])
+
+all_predictions = spam_detect_model.predict(messages_tfidf)
+print(all_predictions)
+from sklearn.metrics import classification_report
+print (classification_report(messages['label'], all_predictions))
+from sklearn.model_selection import train_test_split
+
+msg_train, msg_test, label_train, label_test = \
+train_test_split(messages['message'], messages['label'], test_size=0.2)
+
+print(len(msg_train), len(msg_test), len(msg_train) + len(msg_test))
+from sklearn.pipeline import Pipeline
+
+pipeline = Pipeline([
+    ('bow', CountVectorizer(analyzer=text_process)),  # strings to token integer counts
+    ('tfidf', TfidfTransformer()),  # integer counts to weighted TF-IDF scores
+    ('classifier', MultinomialNB()),  # train on TF-IDF vectors w/ Naive Bayes classifier
+])
+pipeline.fit(msg_train,label_train)
+msg_test
+redictions = pipeline.predict(msg_test)
+redictions
+predictions = pipeline.predict(msg_test)
+predictions
+print(classification_report(predictions,label_test))
+new_input = input("enter the string")
+data = [new_input]
+redictions = pipeline.predict(data)
+predictions = pipeline.predict(data)
+predictions
